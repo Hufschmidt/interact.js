@@ -84,13 +84,15 @@ const snap = {
     const offsets = interaction.modifierOffsets.snap;
     let len = snapOptions.targets? snapOptions.targets.length : 0;
 
-    for (const { x: offsetX, y: offsetY } of offsets) {
-      const relativeX = page.x - offsetX;
-      const relativeY = page.y - offsetY;
+    Object.keys(offsets).forEach((offset, offsetIndex) => {
+      const relativeX = page.x - offset.x;
+      const relativeY = page.y - offset.y;
 
-      for (const snapTarget of snapOptions.targets) {
+      Object.keys(snapOptions.targets).forEach((snapTarget, index) => {
+        let targetRef = index;
         if (utils.isFunction(snapTarget)) {
-          target = snapTarget(relativeX, relativeY, interaction);
+          target    = snapTarget(relativeX, relativeY, interaction);
+          targetRef = target;
         }
         else {
           target = snapTarget;
@@ -103,9 +105,10 @@ const snap = {
           y: utils.isNumber(target.y) ? (target.y + offsetY) : relativeY,
 
           range: utils.isNumber(target.range)? target.range: snapOptions.range,
+          ref: { target: targetRef, offset: offsetIndex }
         });
-      }
-    }
+      });
+    });
 
     const closest = {
       target: null,
@@ -114,6 +117,7 @@ const snap = {
       range: 0,
       dx: 0,
       dy: 0,
+      ref: null
     };
 
     for (i = 0, len = targets.length; i < len; i++) {
@@ -149,6 +153,7 @@ const snap = {
         closest.inRange = inRange;
         closest.dx = dx;
         closest.dy = dy;
+        closest.ref = target.ref;
 
         status.range = range;
       }
@@ -161,12 +166,14 @@ const snap = {
 
       status.snappedX = closest.target.x;
       status.snappedY = closest.target.y;
+      status.ref      = closest.ref;
     }
     else {
       snapChanged = true;
 
       status.snappedX = NaN;
       status.snappedY = NaN;
+      status.ref      = undefined;
     }
 
     status.dx = closest.dx;
