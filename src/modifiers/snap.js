@@ -217,6 +217,7 @@ const snap = {
         realY  : status.realY,
         dx     : status.dx,
         dy     : status.dy,
+        ref    : status.ref,
       };
     }
   },
