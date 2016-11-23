@@ -88,11 +88,9 @@ const snap = {
       const relativeX = page.x - offset.x;
       const relativeY = page.y - offset.y;
 
-      Object.keys(snapOptions.targets).forEach((snapTarget, index) => {
-        let targetRef = index;
+      Object.keys(snapOptions.targets).forEach((snapTarget, targetIndex) => {
         if (utils.isFunction(snapTarget)) {
           target    = snapTarget(relativeX, relativeY, interaction);
-          targetRef = target;
         }
         else {
           target = snapTarget;
@@ -105,7 +103,7 @@ const snap = {
           y: utils.isNumber(target.y) ? (target.y + offsetY) : relativeY,
 
           range: utils.isNumber(target.range)? target.range: snapOptions.range,
-          ref: { target: targetRef, offset: offsetIndex }
+          ref: { target: targetIndex, offset: offsetIndex }
         });
       });
     });
