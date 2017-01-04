@@ -45,11 +45,13 @@ const snap = {
     }
 
     if (rect && snapOptions.relativePoints && snapOptions.relativePoints.length) {
-      for (const { x: relativeX, y: relativeY } of snapOptions.relativePoints) {
-        offsets.push({
+      for (let index = 0; index < snapOptions.relativePoints.length; ++index) {
+        const { x: relativeX, y: relativeY } = snapOptions.relativePoints[index];
+
+        offsets[index] = {
           x: startOffset.left - (rect.width  * relativeX) + snapOffset.x,
           y: startOffset.top  - (rect.height * relativeY) + snapOffset.y,
-        });
+        };
       }
     }
     else {
@@ -81,35 +83,42 @@ const snap = {
     status.realX = page.x;
     status.realY = page.y;
 
-    const offsets = interaction.modifierOffsets.snap;
-    let len = snapOptions.targets? snapOptions.targets.length : 0;
+    if (snapOptions.targets && snapOptions.targets.length) {
+      const offsets = interaction.modifierOffsets.snap;
 
-    Object.keys(offsets).forEach((offset, offsetIndex) => {
-      const relativeX = page.x - offset.x;
-      const relativeY = page.y - offset.y;
+      for (let offsetIndex = 0; offsetIndex < offsets.length; ++offsetIndex) {
+        const { x: offsetX, y: offsetY } = offsets[offsetIndex];
 
-      Object.keys(snapOptions.targets).forEach((snapTarget, targetIndex) => {
-        if (utils.isFunction(snapTarget)) {
-          target    = snapTarget(relativeX, relativeY, interaction);
+        const relativeX = page.x - offsetX;
+        const relativeY = page.y - offsetY;
+
+        for (let targetIndex = 0; targetIndex < snapOptions.targets.length; ++targetIndex) {
+          const snapTarget = snapOptions.targets[targetIndex];
+
+          if (utils.isFunction(snapTarget)) {
+            target = snapTarget(relativeX, relativeY, interaction);
+          }
+          else {
+            target = snapTarget;
+          }
+
+          if (!target) { continue; }
+
+          targets.push({
+            x: utils.isNumber(target.x) ? (target.x + offsetX) : relativeX,
+            y: utils.isNumber(target.y) ? (target.y + offsetY) : relativeY,
+
+            range: utils.isNumber(target.range)? target.range: snapOptions.range,
+
+            target: target,
+            targetIndex: targetIndex,
+
+            relativePoint: { x: offsetX, y: offsetY },
+            relativePointIndex: offsetIndex,
+          });
         }
-        else {
-          target = snapTarget;
-        }
-
-        if (!target) { return; }
-
-        targets.push({
-          x: utils.isNumber(target.x) ? (target.x + offset.x) : relativeX,
-          y: utils.isNumber(target.y) ? (target.y + offset.y) : relativeY,
-
-          range: utils.isNumber(target.range)? target.range: snapOptions.range,
-          ref: {
-            target: targetIndex,
-            offset: offsetIndex,
-          },
-        });
-      });
-    });
+      }
+    }
 
     const closest = {
       target: null,
@@ -118,10 +127,9 @@ const snap = {
       range: 0,
       dx: 0,
       dy: 0,
-      ref: null,
     };
 
-    for (i = 0, len = targets.length; i < len; i++) {
+    for (i = 0; i < targets.length; i++) {
       target = targets[i];
 
       const range = target.range;
@@ -154,7 +162,6 @@ const snap = {
         closest.inRange = inRange;
         closest.dx = dx;
         closest.dy = dy;
-        closest.ref = target.ref;
 
         status.range = range;
       }
@@ -163,18 +170,29 @@ const snap = {
     let snapChanged;
 
     if (closest.target) {
-      snapChanged = (status.snappedX !== closest.target.x || status.snappedY !== closest.target.y);
+      target = closest.target;
+      snapChanged = (status.snappedX !== target.x || status.snappedY !== target.y);
 
-      status.snappedX = closest.target.x;
-      status.snappedY = closest.target.y;
-      status.ref      = closest.ref;
+      status.snappedX = target.x;
+      status.snappedY = target.y;
+
+      status.target = target.target;
+      status.targetIndex = target.targetIndex;
+
+      status.relativePoint = target.relativePoint;
+      status.relativePointIndex = target.relativePointIndex;
     }
     else {
       snapChanged = true;
 
       status.snappedX = NaN;
       status.snappedY = NaN;
-      status.ref      = undefined;
+
+      delete status.target;
+      delete status.targetIndex;
+
+      delete status.relativePoint;
+      delete status.relativePointIndex;
     }
 
     status.dx = closest.dx;
@@ -209,17 +227,22 @@ const snap = {
         client.y += status.dy;
       }
 
-      return {
-        range  : status.range,
-        locked : status.locked,
-        x      : status.snappedX,
-        y      : status.snappedY,
-        realX  : status.realX,
-        realY  : status.realY,
-        dx     : status.dx,
-        dy     : status.dy,
-        ref    : status.ref,
+      const snapObject = {
+        range              : status.range,
+        locked             : status.locked,
+        x                  : status.snappedX,
+        y                  : status.snappedY,
+        realX              : status.realX,
+        realY              : status.realY,
+        dx                 : status.dx,
+        dy                 : status.dy,
       };
+      if (typeof status.target !== 'undefined') { snapObject.target = status.target; }
+      if (typeof status.targetIndex !== 'undefined') { snapObject.targetIndex = status.targetIndex; }
+      if (typeof status.relativePoint !== 'undefined') { snapObject.relativePoint = status.relativePoint; }
+      if (typeof status.relativePointIndex !== 'undefined') { snapObject.relativePointIndex = status.relativePointIndex; }
+
+      return snapObject;
     }
   },
 };
