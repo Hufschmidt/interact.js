@@ -96,14 +96,17 @@ const snap = {
           target = snapTarget;
         }
 
-        if (!target) { continue; }
+        if (!target) { return; }
 
         targets.push({
-          x: utils.isNumber(target.x) ? (target.x + offsetX) : relativeX,
-          y: utils.isNumber(target.y) ? (target.y + offsetY) : relativeY,
+          x: utils.isNumber(target.x) ? (target.x + offset.x) : relativeX,
+          y: utils.isNumber(target.y) ? (target.y + offset.y) : relativeY,
 
           range: utils.isNumber(target.range)? target.range: snapOptions.range,
-          ref: { target: targetIndex, offset: offsetIndex }
+          ref: {
+            target: targetIndex,
+            offset: offsetIndex,
+          },
         });
       });
     });
@@ -115,7 +118,7 @@ const snap = {
       range: 0,
       dx: 0,
       dy: 0,
-      ref: null
+      ref: null,
     };
 
     for (i = 0, len = targets.length; i < len; i++) {
